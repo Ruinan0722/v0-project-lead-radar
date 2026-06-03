@@ -3,6 +3,7 @@
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { LoginPage } from '@/components/login-page'
 import { Sidebar } from '@/components/sidebar'
+import { Header } from '@/components/header'
 import { StatsCards } from '@/components/stats-cards'
 import { LeadsTable } from '@/components/leads-table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,7 +28,8 @@ function DashboardContent() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="ml-64 flex-1 p-8">
+      <Header />
+      <main className="ml-64 mt-16 flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-foreground">商机概览</h1>
           <p className="text-muted-foreground">实时监控招投标商机动态</p>
