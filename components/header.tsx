@@ -11,41 +11,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LoginDialog } from '@/components/login-dialog'
-import { LogOut, User, ChevronDown, LogIn, Users, Shield } from 'lucide-react'
+import { LogOut, User, ChevronDown, LogIn } from 'lucide-react'
 
 export function Header() {
-  const { user, role, logout, setRole } = useAuth()
+  const { user, logout } = useAuth()
   const [loginDialogOpen, setLoginDialogOpen] = useState(false)
 
   return (
     <>
-      <header className="fixed right-0 top-0 z-50 ml-64 flex h-16 w-[calc(100%-16rem)] items-center justify-end gap-3 border-b border-border bg-background px-8">
-        {/* 角色切换按钮 */}
-        <div className="flex items-center rounded-lg border border-border bg-muted/50 p-1">
-          <button
-            onClick={() => setRole('sales')}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              role === 'sales'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            销售
-          </button>
-          <button
-            onClick={() => setRole('admin')}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              role === 'admin'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Shield className="h-4 w-4" />
-            管理员
-          </button>
-        </div>
-
+      <header className="fixed right-0 top-0 z-50 ml-64 flex h-16 w-[calc(100%-16rem)] items-center justify-end border-b border-border bg-background px-8">
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -10,6 +10,8 @@ import {
   Globe,
   Tag,
   FileText,
+  Users,
+  Shield,
 } from 'lucide-react'
 
 const navItems = [
@@ -21,7 +23,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { role } = useAuth()
+  const { role, setRole } = useAuth()
 
   const filteredNavItems = navItems.filter(item => item.roles.includes(role))
 
@@ -36,6 +38,36 @@ export function Sidebar() {
           <div>
             <h1 className="text-lg font-semibold text-sidebar-foreground">商机雷达</h1>
             <p className="text-xs text-muted-foreground">招投标自动发现</p>
+          </div>
+        </div>
+
+        {/* 角色切换 Tab */}
+        <div className="border-b border-sidebar-border px-3 py-3">
+          <div className="flex w-full rounded-lg bg-muted p-1">
+            <button
+              onClick={() => setRole('sales')}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all',
+                role === 'sales'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Users className="h-4 w-4" />
+              销售角色
+            </button>
+            <button
+              onClick={() => setRole('admin')}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all',
+                role === 'admin'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Shield className="h-4 w-4" />
+              管理员
+            </button>
           </div>
         </div>
 
