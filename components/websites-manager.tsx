@@ -41,13 +41,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, RefreshCw, ExternalLink, CheckCircle, XCircle, Pencil, Trash2 } from 'lucide-react'
+import { Plus, ExternalLink, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 
 export function WebsitesManager() {
   const [websites, setWebsites] = useState<WebsiteConfig[]>(mockWebsites)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editingSite, setEditingSite] = useState<WebsiteConfig | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     url: '',
@@ -89,32 +87,6 @@ export function WebsitesManager() {
     setWebsites((prev) => [...prev, newSite])
     resetForm()
     setAddDialogOpen(false)
-  }
-
-  const openEditDialog = (site: WebsiteConfig) => {
-    setEditingSite(site)
-    setFormData({
-      name: site.name,
-      url: site.url,
-      needsLogin: site.needsLogin,
-      hasCaptcha: site.hasCaptcha,
-      frequency: site.frequency
-    })
-    setEditDialogOpen(true)
-  }
-
-  const saveEdit = () => {
-    if (!editingSite || !formData.name || !formData.url) return
-    setWebsites((prev) =>
-      prev.map((site) =>
-        site.id === editingSite.id
-          ? { ...site, ...formData }
-          : site
-      )
-    )
-    setEditDialogOpen(false)
-    setEditingSite(null)
-    resetForm()
   }
 
   const deleteWebsite = (id: string) => {
@@ -275,23 +247,6 @@ export function WebsitesManager() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      title="立即采集"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      title="编辑"
-                      onClick={() => openEditDialog(site)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button 
@@ -329,15 +284,6 @@ export function WebsitesManager() {
         </Table>
       </CardContent>
 
-      {/* 编辑弹窗 */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="bg-card">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">编辑网站</DialogTitle>
-          </DialogHeader>
-          {renderForm(saveEdit, '保存')}
-        </DialogContent>
-      </Dialog>
     </Card>
   )
 }

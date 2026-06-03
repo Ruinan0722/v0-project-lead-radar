@@ -21,7 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ExternalLink, Search, Eye, Download } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import { ExternalLink, Search, Eye, Download, CalendarIcon } from 'lucide-react'
+import { format, subDays, isAfter, isBefore, parseISO, startOfDay } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
 import { LeadDetailDialog } from './lead-detail-dialog'
 
 const statusColors: Record<string, string> = {
@@ -44,7 +48,25 @@ export function LeadsTable({ limit }: { limit?: number }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [timeFilter, setTimeFilter] = useState<string>('all')
+  const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({})
   const [selectedLead, setSelectedLead] = useState<BidLead | null>(null)
+
+  const getDateRange = () => {
+    const today = startOfDay(new Date())
+    switch (timeFilter) {
+      case 'today':
+        return { from: today, to: new Date() }
+      case '7days':
+        return { from: subDays(today, 7), to: new Date() }
+      case '30days':
+        return { from: subDays(today, 30), to: new Date() }
+      case 'custom':
+        return customDateRange
+      default:
+        return null
+    }
+  }
 
   const filteredLeads = mockLeads.filter((lead) => {
     const matchesSearch =
@@ -53,7 +75,19 @@ export function LeadsTable({ limit }: { limit?: number }) {
       lead.keywords.some((kw) => kw.toLowerCase().includes(search.toLowerCase()))
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
     const matchesType = typeFilter === 'all' || lead.bidType === typeFilter
-    return matchesSearch && matchesStatus && matchesType
+    
+    // 时间筛选
+    const dateRange = getDateRange()
+    let matchesTime = true
+    if (dateRange?.from) {
+      const publishDate = parseISO(lead.publishDate)
+      matchesTime = isAfter(publishDate, dateRange.from) || publishDate.getTime() === dateRange.from.getTime()
+      if (dateRange.to) {
+        matchesTime = matchesTime && (isBefore(publishDate, dateRange.to) || publishDate.getTime() === dateRange.to.getTime())
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesType && matchesTime
   })
 
   const displayLeads = limit ? filteredLeads.slice(0, limit) : filteredLeads
@@ -145,6 +179,46 @@ export function LeadsTable({ limit }: { limit?: number }) {
                 <SelectItem value="竞争性谈判">竞争性谈判</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={timeFilter} onValueChange={setTimeFilter}>
+              <SelectTrigger className="w-32 bg-input">
+                <SelectValue placeholder="发布时间" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部时间</SelectItem>
+                <SelectItem value="today">今天</SelectItem>
+                <SelectItem value="7days">近 7 天</SelectItem>
+                <SelectItem value="30days">近 30 天</SelectItem>
+                <SelectItem value="custom">自定义</SelectItem>
+              </SelectContent>
+            </Select>
+            {timeFilter === 'custom' && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1 bg-input">
+                    <CalendarIcon className="h-4 w-4" />
+                    {customDateRange.from ? (
+                      customDateRange.to ? (
+                        <>
+                          {format(customDateRange.from, 'MM/dd', { locale: zhCN })} - {format(customDateRange.to, 'MM/dd', { locale: zhCN })}
+                        </>
+                      ) : (
+                        format(customDateRange.from, 'yyyy/MM/dd', { locale: zhCN })
+                      )
+                    ) : (
+                      '选择日期'
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-card" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: customDateRange.from, to: customDateRange.to }}
+                    onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
+                    locale={zhCN}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
             {!limit && (
               <Button 
                 variant="outline" 
