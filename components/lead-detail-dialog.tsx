@@ -30,7 +30,10 @@ import {
   FileText,
   Sparkles,
   User,
-  MessageSquare
+  MessageSquare,
+  Phone,
+  Hash,
+  Briefcase
 } from 'lucide-react'
 
 interface LeadDetailDialogProps {
@@ -40,6 +43,14 @@ interface LeadDetailDialogProps {
 }
 
 const statusOptions = ['未查看', '已查看', '跟进中', '已投标', '已放弃'] as const
+
+const bidTypeColors: Record<string, string> = {
+  '招标公告': 'bg-primary/20 text-primary',
+  '磋商公告': 'bg-warning/20 text-warning',
+  '中标公告': 'bg-success/20 text-success',
+  '询价公告': 'bg-muted text-muted-foreground',
+  '竞争性谈判': 'bg-accent/20 text-accent'
+}
 
 export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogProps) {
   const [status, setStatus] = useState(lead?.status || '未查看')
@@ -59,7 +70,10 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto bg-card">
         <DialogHeader>
-          <DialogTitle className="text-xl text-foreground">{lead.projectName}</DialogTitle>
+          <div className="flex items-start justify-between gap-4">
+            <DialogTitle className="text-xl text-foreground">{lead.projectName}</DialogTitle>
+            <Badge className={bidTypeColors[lead.bidType]}>{lead.bidType}</Badge>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -71,8 +85,18 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
               <span className="text-foreground">{lead.bidder}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
+              <Hash className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">招标编号：</span>
+              <span className="text-foreground">{lead.bidNumber || '未公开'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">所属行业：</span>
+              <span className="text-foreground">{lead.industry || '未分类'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">地区：</span>
+              <span className="text-muted-foreground">所属地区：</span>
               <span className="text-foreground">{lead.region}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
@@ -83,7 +107,9 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
             <div className="flex items-center gap-2 text-sm">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">截止时间：</span>
-              <span className="text-foreground">{lead.deadline || '未公开'}</span>
+              <span className={`${lead.deadline ? 'text-warning font-medium' : 'text-foreground'}`}>
+                {lead.deadline || '未公开'}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -92,8 +118,24 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
             </div>
             <div className="flex items-center gap-2 text-sm">
               <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">来源：</span>
+              <span className="text-muted-foreground">信息来源：</span>
               <span className="text-foreground">{lead.source}</span>
+            </div>
+          </div>
+
+          {/* 联系方式 */}
+          <div className="rounded-lg bg-secondary/30 p-3">
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">联系人：</span>
+                <span className="text-foreground">{lead.contact || '未公开'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">联系电话：</span>
+                <span className="text-foreground font-medium">{lead.contactPhone || '未公开'}</span>
+              </div>
             </div>
           </div>
 
@@ -114,45 +156,39 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="font-medium text-foreground">AI 智能分析</span>
             </div>
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="text-center">
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="text-center rounded-lg bg-background/50 p-3">
                 <div className={`text-2xl font-bold ${lead.relevanceScore >= 80 ? 'text-success' : lead.relevanceScore >= 60 ? 'text-warning' : 'text-muted-foreground'}`}>
-                  {lead.relevanceScore}%
+                  {lead.relevanceScore}
                 </div>
-                <div className="text-xs text-muted-foreground">相关度</div>
+                <div className="text-xs text-muted-foreground">相关度评分（满分100）</div>
               </div>
-              <div className="text-center">
-                <div className={`text-2xl font-bold ${lead.leadLevel === '高' ? 'text-destructive' : lead.leadLevel === '中' ? 'text-warning' : 'text-muted-foreground'}`}>
-                  {lead.leadLevel}
-                </div>
-                <div className="text-xs text-muted-foreground">线索等级</div>
-              </div>
-              <div className="text-center">
+              <div className="text-center rounded-lg bg-background/50 p-3">
                 <Badge className={lead.status === '跟进中' ? 'bg-warning/20 text-warning' : lead.status === '已投标' ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}>
                   {lead.status}
                 </Badge>
-                <div className="mt-1 text-xs text-muted-foreground">当前状态</div>
+                <div className="mt-1 text-xs text-muted-foreground">当前跟进状态</div>
               </div>
             </div>
-            <div className="space-y-2 text-sm">
-              <p className="text-muted-foreground">
-                <span className="font-medium text-foreground">项目摘要：</span>
-                {lead.summary}
+            {lead.relevanceScore >= 80 && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-success">高度匹配：</span>
+                建议SDR当天联系采购单位，确认项目需求范围和投标条件。
               </p>
-              {lead.relevanceScore >= 80 && (
-                <p className="text-muted-foreground">
-                  <span className="font-medium text-foreground">跟进建议：</span>
-                  建议SDR当天联系采购单位，确认项目需求范围和投标条件。
-                </p>
-              )}
-            </div>
+            )}
+            {lead.relevanceScore >= 60 && lead.relevanceScore < 80 && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-warning">中度匹配：</span>
+                建议进一步了解项目详情，评估是否符合公司业务方向。
+              </p>
+            )}
           </div>
 
           <Separator className="bg-border" />
 
           {/* 招标正文 */}
           <div>
-            <h4 className="mb-2 font-medium text-foreground">招标内容摘要</h4>
+            <h4 className="mb-2 font-medium text-foreground">招标内容</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">{lead.content}</p>
             <Button variant="link" className="mt-2 h-auto p-0 text-primary" asChild>
               <a href={lead.sourceUrl} target="_blank" rel="noopener noreferrer">
@@ -194,7 +230,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
             <div>
               <Label className="text-muted-foreground">
                 <MessageSquare className="mr-1 inline h-3 w-3" />
-                跟进备注
+                备注
               </Label>
               <Textarea
                 className="mt-1 bg-input"

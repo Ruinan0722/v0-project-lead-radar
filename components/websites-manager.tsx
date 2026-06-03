@@ -21,6 +21,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -30,18 +41,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, RefreshCw, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, RefreshCw, ExternalLink, CheckCircle, XCircle, Pencil, Trash2 } from 'lucide-react'
 
 export function WebsitesManager() {
   const [websites, setWebsites] = useState<WebsiteConfig[]>(mockWebsites)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [newWebsite, setNewWebsite] = useState({
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingSite, setEditingSite] = useState<WebsiteConfig | null>(null)
+  const [formData, setFormData] = useState({
     name: '',
     url: '',
     needsLogin: false,
     hasCaptcha: false,
     frequency: '每天' as const
   })
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      url: '',
+      needsLogin: false,
+      hasCaptcha: false,
+      frequency: '每天'
+    })
+  }
 
   const toggleStatus = (id: string) => {
     setWebsites((prev) =>
@@ -54,19 +77,105 @@ export function WebsitesManager() {
   }
 
   const addWebsite = () => {
-    if (!newWebsite.name || !newWebsite.url) return
+    if (!formData.name || !formData.url) return
     const newSite: WebsiteConfig = {
-      id: String(websites.length + 1),
-      ...newWebsite,
+      id: String(Date.now()),
+      ...formData,
       status: '启用',
       lastCrawlTime: null,
       lastCrawlResult: null,
       failureReason: null
     }
     setWebsites((prev) => [...prev, newSite])
-    setNewWebsite({ name: '', url: '', needsLogin: false, hasCaptcha: false, frequency: '每天' })
-    setDialogOpen(false)
+    resetForm()
+    setAddDialogOpen(false)
   }
+
+  const openEditDialog = (site: WebsiteConfig) => {
+    setEditingSite(site)
+    setFormData({
+      name: site.name,
+      url: site.url,
+      needsLogin: site.needsLogin,
+      hasCaptcha: site.hasCaptcha,
+      frequency: site.frequency
+    })
+    setEditDialogOpen(true)
+  }
+
+  const saveEdit = () => {
+    if (!editingSite || !formData.name || !formData.url) return
+    setWebsites((prev) =>
+      prev.map((site) =>
+        site.id === editingSite.id
+          ? { ...site, ...formData }
+          : site
+      )
+    )
+    setEditDialogOpen(false)
+    setEditingSite(null)
+    resetForm()
+  }
+
+  const deleteWebsite = (id: string) => {
+    setWebsites((prev) => prev.filter((site) => site.id !== id))
+  }
+
+  const renderForm = (onSubmit: () => void, submitText: string) => (
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label>网站名称</Label>
+        <Input
+          className="bg-input"
+          placeholder="如：中国政府采购网"
+          value={formData.name}
+          onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>网站地址</Label>
+        <Input
+          className="bg-input"
+          placeholder="https://..."
+          value={formData.url}
+          onChange={(e) => setFormData((p) => ({ ...p, url: e.target.value }))}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>采集频率</Label>
+        <Select
+          value={formData.frequency}
+          onValueChange={(v) => setFormData((p) => ({ ...p, frequency: v as typeof formData.frequency }))}
+        >
+          <SelectTrigger className="bg-input">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="每小时">每小时</SelectItem>
+            <SelectItem value="每天">每天</SelectItem>
+            <SelectItem value="每周">每周</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>需要登录</Label>
+        <Switch
+          checked={formData.needsLogin}
+          onCheckedChange={(c) => setFormData((p) => ({ ...p, needsLogin: c }))}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>存在验证码</Label>
+        <Switch
+          checked={formData.hasCaptcha}
+          onCheckedChange={(c) => setFormData((p) => ({ ...p, hasCaptcha: c }))}
+        />
+      </div>
+      <Button className="w-full bg-primary text-primary-foreground" onClick={onSubmit}>
+        {submitText}
+      </Button>
+    </div>
+  )
 
   return (
     <Card className="bg-card">
@@ -76,7 +185,7 @@ export function WebsitesManager() {
             <CardTitle className="text-foreground">网站采集管理</CardTitle>
             <CardDescription>配置需要监控的招投标网站</CardDescription>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary text-primary-foreground">
                 <Plus className="mr-2 h-4 w-4" />
@@ -87,59 +196,7 @@ export function WebsitesManager() {
               <DialogHeader>
                 <DialogTitle className="text-foreground">添加新网站</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>网站名称</Label>
-                  <Input
-                    className="bg-input"
-                    placeholder="如：中国政府采购网"
-                    value={newWebsite.name}
-                    onChange={(e) => setNewWebsite((p) => ({ ...p, name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>网站地址</Label>
-                  <Input
-                    className="bg-input"
-                    placeholder="https://..."
-                    value={newWebsite.url}
-                    onChange={(e) => setNewWebsite((p) => ({ ...p, url: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>采集频率</Label>
-                  <Select
-                    value={newWebsite.frequency}
-                    onValueChange={(v) => setNewWebsite((p) => ({ ...p, frequency: v as typeof newWebsite.frequency }))}
-                  >
-                    <SelectTrigger className="bg-input">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="每小时">每小时</SelectItem>
-                      <SelectItem value="每天">每天</SelectItem>
-                      <SelectItem value="每周">每周</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label>需要登录</Label>
-                  <Switch
-                    checked={newWebsite.needsLogin}
-                    onCheckedChange={(c) => setNewWebsite((p) => ({ ...p, needsLogin: c }))}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label>存在验证码</Label>
-                  <Switch
-                    checked={newWebsite.hasCaptcha}
-                    onCheckedChange={(c) => setNewWebsite((p) => ({ ...p, hasCaptcha: c }))}
-                  />
-                </div>
-                <Button className="w-full bg-primary text-primary-foreground" onClick={addWebsite}>
-                  添加
-                </Button>
-              </div>
+              {renderForm(addWebsite, '添加')}
             </DialogContent>
           </Dialog>
         </div>
@@ -154,7 +211,7 @@ export function WebsitesManager() {
               <TableHead className="text-muted-foreground">需登录</TableHead>
               <TableHead className="text-muted-foreground">验证码</TableHead>
               <TableHead className="text-muted-foreground">最近采集</TableHead>
-              <TableHead className="text-muted-foreground">状态</TableHead>
+              <TableHead className="text-muted-foreground">启用</TableHead>
               <TableHead className="text-muted-foreground">操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -217,15 +274,70 @@ export function WebsitesManager() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      title="立即采集"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      title="编辑"
+                      onClick={() => openEditDialog(site)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          title="删除"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-foreground">确认删除</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            确定要删除网站「{site.name}」吗？此操作无法撤销。
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => deleteWebsite(site.id)}
+                          >
+                            删除
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </CardContent>
+
+      {/* 编辑弹窗 */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">编辑网站</DialogTitle>
+          </DialogHeader>
+          {renderForm(saveEdit, '保存')}
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

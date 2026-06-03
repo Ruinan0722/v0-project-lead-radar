@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ExternalLink, Search, Eye } from 'lucide-react'
+import { ExternalLink, Search, Eye, Download } from 'lucide-react'
 import { LeadDetailDialog } from './lead-detail-dialog'
 
 const statusColors: Record<string, string> = {
@@ -32,25 +32,28 @@ const statusColors: Record<string, string> = {
   '已放弃': 'bg-destructive/20 text-destructive'
 }
 
-const levelColors: Record<string, string> = {
-  '高': 'bg-destructive/20 text-destructive border-destructive/30',
-  '中': 'bg-warning/20 text-warning border-warning/30',
-  '低': 'bg-muted text-muted-foreground border-muted'
+const bidTypeColors: Record<string, string> = {
+  '招标公告': 'bg-primary/20 text-primary',
+  '磋商公告': 'bg-warning/20 text-warning',
+  '中标公告': 'bg-success/20 text-success',
+  '询价公告': 'bg-muted text-muted-foreground',
+  '竞争性谈判': 'bg-accent/20 text-accent'
 }
 
 export function LeadsTable({ limit }: { limit?: number }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [levelFilter, setLevelFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
   const [selectedLead, setSelectedLead] = useState<BidLead | null>(null)
 
   const filteredLeads = mockLeads.filter((lead) => {
     const matchesSearch =
       lead.projectName.toLowerCase().includes(search.toLowerCase()) ||
-      lead.bidder.toLowerCase().includes(search.toLowerCase())
+      lead.bidder.toLowerCase().includes(search.toLowerCase()) ||
+      lead.keywords.some((kw) => kw.toLowerCase().includes(search.toLowerCase()))
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
-    const matchesLevel = levelFilter === 'all' || lead.leadLevel === levelFilter
-    return matchesSearch && matchesStatus && matchesLevel
+    const matchesType = typeFilter === 'all' || lead.bidType === typeFilter
+    return matchesSearch && matchesStatus && matchesType
   })
 
   const displayLeads = limit ? filteredLeads.slice(0, limit) : filteredLeads
@@ -63,6 +66,44 @@ export function LeadsTable({ limit }: { limit?: number }) {
     return `${budget}元`
   }
 
+  const exportToCSV = () => {
+    const headers = [
+      '项目名称', '招标单位', '招标编号', '所属行业', '所属地区',
+      '发布时间', '截止时间', '预算金额', '招标类型', '联系人',
+      '联系电话', '信息来源', '命中关键词', '相关度', '负责人', '跟进状态'
+    ]
+    
+    const rows = filteredLeads.map((lead) => [
+      lead.projectName,
+      lead.bidder,
+      lead.bidNumber || '',
+      lead.industry || '',
+      lead.region,
+      lead.publishDate,
+      lead.deadline || '',
+      lead.budget ? String(lead.budget) : '',
+      lead.bidType,
+      lead.contact || '',
+      lead.contactPhone || '',
+      lead.source,
+      lead.keywords.join('/'),
+      `${lead.relevanceScore}%`,
+      lead.assignee || '',
+      lead.status
+    ])
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))
+    ].join('\n')
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `招标线索_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
+
   return (
     <Card className="bg-card">
       <CardHeader>
@@ -72,14 +113,14 @@ export function LeadsTable({ limit }: { limit?: number }) {
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索项目名称或招标单位..."
-                className="w-64 bg-input pl-8"
+                placeholder="搜索项目/单位/关键词..."
+                className="w-56 bg-input pl-8"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32 bg-input">
+              <SelectTrigger className="w-28 bg-input">
                 <SelectValue placeholder="状态" />
               </SelectTrigger>
               <SelectContent>
@@ -91,17 +132,30 @@ export function LeadsTable({ limit }: { limit?: number }) {
                 <SelectItem value="已放弃">已放弃</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={levelFilter} onValueChange={setLevelFilter}>
-              <SelectTrigger className="w-32 bg-input">
-                <SelectValue placeholder="等级" />
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-28 bg-input">
+                <SelectValue placeholder="类型" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部等级</SelectItem>
-                <SelectItem value="高">高优先级</SelectItem>
-                <SelectItem value="中">中优先级</SelectItem>
-                <SelectItem value="低">低优先级</SelectItem>
+                <SelectItem value="all">全部类型</SelectItem>
+                <SelectItem value="招标公告">招标公告</SelectItem>
+                <SelectItem value="磋商公告">磋商公告</SelectItem>
+                <SelectItem value="中标公告">中标公告</SelectItem>
+                <SelectItem value="询价公告">询价公告</SelectItem>
+                <SelectItem value="竞争性谈判">竞争性谈判</SelectItem>
               </SelectContent>
             </Select>
+            {!limit && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1"
+                onClick={exportToCSV}
+              >
+                <Download className="h-4 w-4" />
+                导出
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -110,14 +164,18 @@ export function LeadsTable({ limit }: { limit?: number }) {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground">项目名称</TableHead>
+                <TableHead className="text-muted-foreground min-w-[200px]">项目名称</TableHead>
                 <TableHead className="text-muted-foreground">招标单位</TableHead>
+                <TableHead className="text-muted-foreground">行业</TableHead>
                 <TableHead className="text-muted-foreground">地区</TableHead>
                 <TableHead className="text-muted-foreground">预算</TableHead>
+                <TableHead className="text-muted-foreground">发布日期</TableHead>
                 <TableHead className="text-muted-foreground">截止时间</TableHead>
+                <TableHead className="text-muted-foreground">类型</TableHead>
+                <TableHead className="text-muted-foreground">来源</TableHead>
                 <TableHead className="text-muted-foreground">关键词</TableHead>
                 <TableHead className="text-muted-foreground">相关度</TableHead>
-                <TableHead className="text-muted-foreground">等级</TableHead>
+                <TableHead className="text-muted-foreground">负责人</TableHead>
                 <TableHead className="text-muted-foreground">状态</TableHead>
                 <TableHead className="text-muted-foreground">操作</TableHead>
               </TableRow>
@@ -125,15 +183,25 @@ export function LeadsTable({ limit }: { limit?: number }) {
             <TableBody>
               {displayLeads.map((lead) => (
                 <TableRow key={lead.id} className="border-border hover:bg-secondary/50">
-                  <TableCell className="max-w-xs">
+                  <TableCell className="max-w-[200px]">
                     <div className="truncate font-medium text-foreground" title={lead.projectName}>
                       {lead.projectName}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{lead.bidder}</TableCell>
+                  <TableCell className="text-muted-foreground max-w-[120px]">
+                    <div className="truncate" title={lead.bidder}>{lead.bidder}</div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{lead.industry || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{lead.region}</TableCell>
                   <TableCell className="text-foreground">{formatBudget(lead.budget)}</TableCell>
-                  <TableCell className="text-muted-foreground">{lead.deadline || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{lead.publishDate}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{lead.deadline || '-'}</TableCell>
+                  <TableCell>
+                    <Badge className={`text-xs ${bidTypeColors[lead.bidType]}`}>
+                      {lead.bidType.replace('公告', '')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{lead.source}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {lead.keywords.slice(0, 2).map((kw) => (
@@ -150,14 +218,10 @@ export function LeadsTable({ limit }: { limit?: number }) {
                   </TableCell>
                   <TableCell>
                     <span className={`font-medium ${lead.relevanceScore >= 80 ? 'text-success' : lead.relevanceScore >= 60 ? 'text-warning' : 'text-muted-foreground'}`}>
-                      {lead.relevanceScore}%
+                      {lead.relevanceScore}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={levelColors[lead.leadLevel]}>
-                      {lead.leadLevel}
-                    </Badge>
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{lead.assignee || '-'}</TableCell>
                   <TableCell>
                     <Badge className={statusColors[lead.status]}>
                       {lead.status}
@@ -169,6 +233,7 @@ export function LeadsTable({ limit }: { limit?: number }) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
+                        title="查看详情"
                         onClick={() => setSelectedLead(lead)}
                       >
                         <Eye className="h-4 w-4" />
@@ -177,6 +242,7 @@ export function LeadsTable({ limit }: { limit?: number }) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
+                        title="打开原文"
                         asChild
                       >
                         <a href={lead.sourceUrl} target="_blank" rel="noopener noreferrer">
