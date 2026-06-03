@@ -3,13 +3,16 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth-context'
+import { Button } from '@/components/ui/button'
 import {
   Radar,
   LayoutDashboard,
   Globe,
   Tag,
   FileText,
-  Settings
+  LogOut,
+  User
 } from 'lucide-react'
 
 const navItems = [
@@ -21,6 +24,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { user, logout } = useAuth()
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-sidebar">
@@ -60,10 +64,23 @@ export function Sidebar() {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4">
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-            <Settings className="h-4 w-4" />
-            <span>系统设置</span>
+          <div className="mb-3 flex items-center gap-3 rounded-lg bg-sidebar-accent px-3 py-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
+              <User className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">{user?.name || '用户'}</p>
+              <p className="truncate text-xs text-muted-foreground">{user?.email || ''}</p>
+            </div>
           </div>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
+            onClick={logout}
+          >
+            <LogOut className="h-4 w-4" />
+            退出登录
+          </Button>
         </div>
       </div>
     </aside>

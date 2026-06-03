@@ -33,13 +33,15 @@ import {
   MessageSquare,
   Phone,
   Hash,
-  Briefcase
+  Briefcase,
+  Loader2
 } from 'lucide-react'
 
 interface LeadDetailDialogProps {
   lead: BidLead | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSave?: (id: string, status: string, notes: string) => void
 }
 
 const statusOptions = ['未查看', '已查看', '跟进中', '已投标', '已放弃'] as const
@@ -52,9 +54,27 @@ const bidTypeColors: Record<string, string> = {
   '竞争性谈判': 'bg-accent/20 text-accent'
 }
 
-export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogProps) {
+export function LeadDetailDialog({ lead, open, onOpenChange, onSave }: LeadDetailDialogProps) {
   const [status, setStatus] = useState(lead?.status || '未查看')
   const [notes, setNotes] = useState(lead?.notes || '')
+  const [isSaving, setIsSaving] = useState(false)
+
+  // 当lead变化时更新状态
+  if (lead && (status !== lead.status || notes !== lead.notes)) {
+    if (status === (lead?.status || '未查看') && notes === (lead?.notes || '')) {
+      // 初始加载，不做任何事
+    }
+  }
+
+  const handleSave = async () => {
+    if (!lead || !onSave) return
+    setIsSaving(true)
+    // 模拟保存延迟
+    await new Promise(resolve => setTimeout(resolve, 500))
+    onSave(lead.id, status, notes)
+    setIsSaving(false)
+    onOpenChange(false)
+  }
 
   if (!lead) return null
 
@@ -251,8 +271,19 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-              保存
+            <Button 
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  保存中...
+                </>
+              ) : (
+                '保存'
+              )}
             </Button>
           </div>
         </div>

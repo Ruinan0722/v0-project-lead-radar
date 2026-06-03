@@ -45,12 +45,23 @@ const bidTypeColors: Record<string, string> = {
 }
 
 export function LeadsTable({ limit }: { limit?: number }) {
+  const [leads, setLeads] = useState<BidLead[]>(mockLeads)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [timeFilter, setTimeFilter] = useState<string>('all')
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({})
   const [selectedLead, setSelectedLead] = useState<BidLead | null>(null)
+
+  const handleSaveLead = (id: string, status: string, notes: string) => {
+    setLeads((prev) =>
+      prev.map((lead) =>
+        lead.id === id
+          ? { ...lead, status: status as BidLead['status'], notes, lastFollowUp: new Date().toISOString().split('T')[0] }
+          : lead
+      )
+    )
+  }
 
   const getDateRange = () => {
     const today = startOfDay(new Date())
@@ -68,7 +79,7 @@ export function LeadsTable({ limit }: { limit?: number }) {
     }
   }
 
-  const filteredLeads = mockLeads.filter((lead) => {
+  const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
       lead.projectName.toLowerCase().includes(search.toLowerCase()) ||
       lead.bidder.toLowerCase().includes(search.toLowerCase()) ||
@@ -340,6 +351,7 @@ export function LeadsTable({ limit }: { limit?: number }) {
         lead={selectedLead}
         open={!!selectedLead}
         onOpenChange={(open) => !open && setSelectedLead(null)}
+        onSave={handleSaveLead}
       />
     </Card>
   )
