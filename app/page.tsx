@@ -1,7 +1,6 @@
 'use client'
 
-import { AuthProvider, useAuth } from '@/lib/auth-context'
-import { LoginPage } from '@/components/login-page'
+import { useAuth } from '@/lib/auth-context'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { StatsCards } from '@/components/stats-cards'
@@ -10,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TrendingUp, Clock, AlertTriangle, Loader2 } from 'lucide-react'
 
-function DashboardContent() {
-  const { user, isLoading } = useAuth()
+export default function Dashboard() {
+  const { isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -19,10 +18,6 @@ function DashboardContent() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
-  }
-
-  if (!user) {
-    return <LoginPage />
   }
 
   return (
@@ -102,13 +97,5 @@ function DashboardContent() {
         </div>
       </main>
     </div>
-  )
-}
-
-export default function Dashboard() {
-  return (
-    <AuthProvider>
-      <DashboardContent />
-    </AuthProvider>
   )
 }
